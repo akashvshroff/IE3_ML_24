@@ -20,9 +20,7 @@ def main():
     # Creating a button for webcam
     use_webcam = st.sidebar.button('Use Webcam')
 
-    # Slider for detection confidence
-    detection_confidence = st.sidebar.slider('Min Detection Confidence', min_value=0.0, max_value=1.0, value=0.5)
-
+   
     st.markdown('## Output')
     stframe = st.empty()
 
@@ -54,9 +52,15 @@ def main():
 
     # holistic = mp_holistic.Holistic(min_detection_confidence=0.5, min_tracking_confidence=0.5)
 
+    frame_count = 0 
+    new_word = True
+
+    landmarks = []
 
     while vid.isOpened():
         ret, image = vid.read()
+
+        new_word = False
 
         image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
 
@@ -65,11 +69,22 @@ def main():
 
         results = hand.process(image)
 
+        frame_count += 1
+
+        if frame_count == 20:
+            new_word = True
+            frame_count = 0
+
+        if new_word:
+            landmarks = []
+        
         if results.multi_hand_landmarks:
 
             for hand_landmarks in results.multi_hand_landmarks:
+               
                 print(hand_landmarks)
                 mp_drawing.draw_landmarks(image, hand_landmarks, mp_hands.HAND_CONNECTIONS)
+                landmarks.append(hand_landmarks)
 
         stframe.image(image, use_column_width=True)
 
