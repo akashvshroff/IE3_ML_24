@@ -1,3 +1,4 @@
+import numpy as np
 import cv2
 import tempfile
 import streamlit as st
@@ -6,8 +7,9 @@ from mediapipe.tasks import python
 from mediapipe.tasks.python import vision
 
 mp_drawing = mp.solutions.drawing_utils
+mp_drawing_styles = mp.solutions.drawing_styles
+mp_holistic = mp.solutions.holistic
 mp_hands = mp.solutions.hands
-hand = mp_hands.Hands()
 
 def main():
     # Title
@@ -52,26 +54,63 @@ def main():
     st.sidebar.text('Input Video')
     st.sidebar.video(tffile.name)
 
-    # holistic = mp_holistic.Holistic(min_detection_confidence=0.5, min_tracking_confidence=0.5)
+    # Number of frames to process at once:
+    frame_count = 30
+    frame_ctr = 0
 
+    with mp_holistic.Holistic(min_detection_confidence=0.5, min_tracking_confidence=0.5) as holistic:
 
-    while vid.isOpened():
-        ret, image = vid.read()
+        hands_mat = np.empty((frame_count, 2), dtype=object)
 
-        image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+        while vid.isOpened():
+            
+            ret, image = vid.read()
 
-        if not ret:
-            break
+            image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
 
-        results = hand.process(image)
+            if not ret:
+                break
 
-        if results.multi_hand_landmarks:
+            results = holistic.process(image)
 
-            for hand_landmarks in results.multi_hand_landmarks:
-                print(hand_landmarks)
-                mp_drawing.draw_landmarks(image, hand_landmarks, mp_hands.HAND_CONNECTIONS)
+            if results.right_hand_landmarks or results.left_hand_landmarks or frame_ctr != 0:
+                if results.right_hand_landmarks:
+                    right_hand = []
+                    for x in results.right_hand_landmarks.landmark:
+                        right_hand.append((x.x, x.y, x.z))
+                    hands_mat[frame_ctr][0] = np.array(right_hand)
+                
+                if results.left_hand_landmarks:
+                    left_hand = []
+                    for x in results.left_hand_landmarks.landmark:
+                        left_hand.append((x.x, x.y, x.z))
+                    hands_mat[frame_ctr][1] = np.array(left_hand)
 
-        stframe.image(image, use_column_width=True)
+                frame_ctr += 1
+
+                if frame_ctr == 30:
+                    np.save(f'data.npy', hands_mat)
+                    # PROCESS DATA
+                    hands_mat = np.empty((frame_count, 2), dtype=object)
+                    frame_ctr = 0
+
+            # mp_drawing.draw_landmarks(
+            #     image,
+            #     results.right_hand_landmarks,
+            #     mp_hands.HAND_CONNECTIONS,
+            #     mp_drawing_styles.get_default_hand_landmarks_style(),
+            #     mp_drawing_styles.get_default_hand_connections_style())
+            
+            # mp_drawing.draw_landmarks(
+            #     image,
+            #     results.left_hand_landmarks,
+            #     mp_hands.HAND_CONNECTIONS,
+            #     mp_drawing_styles.get_default_hand_landmarks_style(),
+            #     mp_drawing_styles.get_default_hand_connections_style())
+
+            stframe.image(cv2.flip(image, 1), use_column_width=True)
+
+            
 
     vid.release()
     out.release()
