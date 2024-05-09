@@ -55,7 +55,7 @@ def main():
     st.sidebar.video(tffile.name)
 
     # Number of frames to process at once:
-    frame_count = 30
+    frame_count = 20
     frame_ctr = 0
 
     with mp_holistic.Holistic(min_detection_confidence=0.5, min_tracking_confidence=0.5) as holistic:
