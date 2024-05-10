@@ -1,3 +1,4 @@
 constants.py
 __pycache__
-DemoApp/model_state_dict.pth
+model_state_dict.pth
+output1.webm
