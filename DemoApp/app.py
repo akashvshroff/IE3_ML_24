@@ -1,7 +1,15 @@
+# streamlit imports
+import streamlit as st
+from streamlit_lottie import st_lottie
+
+# utils and ml
+from utils import *
+from ml import *
+
+# media pipe and image imports
 import numpy as np
 import cv2
 import tempfile
-import streamlit as st
 import mediapipe as mp
 from mediapipe.tasks import python
 from mediapipe.tasks.python import vision
@@ -12,37 +20,24 @@ mp_holistic = mp.solutions.holistic
 mp_hands = mp.solutions.hands
 
 
-def main():
-    # Title
-    st.title("AiSL")
+lottie_file = load_lottieurl()  # animation url
+st_lottie(lottie_file, height=175, quality="medium")
+st.title("AiSL")
 
-    # Sidebar title
-    st.sidebar.title("Use your webcam or upload a video!")
-    st.sidebar.subheader("Parameters")
+st.write(
+    "Translate from American Sign Language to English in real-time by leveraging LSTM (Long Short Term Memory) Neural Networks and Large Language Models."
+)
+st.write(
+    "*Disclaimer: captured videos are only stored temporarily and wiped after inference.*"
+)
 
-    # Creating a button for webcam
-    use_webcam = st.sidebar.button("Use Webcam")
+use_webcam = st.button("Record Sign Language")
+stframe = st.empty()
 
-    st.markdown("## Output")
-    stframe = st.empty()
+if use_webcam:
+    vid = cv2.VideoCapture(0)
 
-    # File uploader
-    video_file_buffer = st.sidebar.file_uploader(
-        "Upload a video", type=["mp4", "mov", "avi", "asf", "m4v"]
-    )
-
-    # Temporary file name
-    tffile = tempfile.NamedTemporaryFile(delete=False)
-
-    if not video_file_buffer:
-        if use_webcam:
-            vid = cv2.VideoCapture(0)
-        else:
-            st.warning("Please upload a video or select 'Use Webcam'")
-            return
-    else:
-        tffile.write(video_file_buffer.read())
-        vid = cv2.VideoCapture(tffile.name)
+    st.button("Stop Recording")
 
     # Values
     width = int(vid.get(cv2.CAP_PROP_FRAME_WIDTH))
@@ -51,11 +46,8 @@ def main():
     codec = cv2.VideoWriter_fourcc("V", "P", "0", "9")
     out = cv2.VideoWriter("output1.webm", codec, fps, (width, height))
 
-    st.sidebar.text("Input Video")
-    st.sidebar.video(tffile.name)
-
     # Number of frames to process at once:
-    frame_count = 20
+    frame_count = 50
     frame_ctr = 0
 
     with mp_holistic.Holistic(
@@ -100,19 +92,21 @@ def main():
                     hands_mat = np.empty((frame_count + 1, 2), dtype=object)
                     frame_ctr = 0
 
-            # mp_drawing.draw_landmarks(
-            #     image,
-            #     results.right_hand_landmarks,
-            #     mp_hands.HAND_CONNECTIONS,
-            #     mp_drawing_styles.get_default_hand_landmarks_style(),
-            #     mp_drawing_styles.get_default_hand_connections_style())
+            mp_drawing.draw_landmarks(
+                image,
+                results.right_hand_landmarks,
+                mp_hands.HAND_CONNECTIONS,
+                mp_drawing_styles.get_default_hand_landmarks_style(),
+                mp_drawing_styles.get_default_hand_connections_style(),
+            )
 
-            # mp_drawing.draw_landmarks(
-            #     image,
-            #     results.left_hand_landmarks,
-            #     mp_hands.HAND_CONNECTIONS,
-            #     mp_drawing_styles.get_default_hand_landmarks_style(),
-            #     mp_drawing_styles.get_default_hand_connections_style())
+            mp_drawing.draw_landmarks(
+                image,
+                results.left_hand_landmarks,
+                mp_hands.HAND_CONNECTIONS,
+                mp_drawing_styles.get_default_hand_landmarks_style(),
+                mp_drawing_styles.get_default_hand_connections_style(),
+            )
 
             stframe.image(cv2.flip(image, 1), use_column_width=True)
 
@@ -121,7 +115,3 @@ def main():
     cv2.destroyAllWindows()
 
     st.success("Video is Processed")
-
-
-if __name__ == "__main__":
-    main()
