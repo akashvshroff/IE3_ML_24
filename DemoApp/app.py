@@ -62,7 +62,7 @@ def main():
         min_detection_confidence=0.5, min_tracking_confidence=0.5
     ) as holistic:
 
-        hands_mat = np.empty((frame_count, 2), dtype=object)
+        hands_mat = np.empty((frame_count + 1, 2), dtype=object)
 
         while vid.isOpened():
 
@@ -94,10 +94,10 @@ def main():
 
                 frame_ctr += 1
 
-                if frame_ctr == 30:
+                if frame_ctr == frame_count:
                     np.save(f"data.npy", hands_mat)
                     # PROCESS DATA
-                    hands_mat = np.empty((frame_count, 2), dtype=object)
+                    hands_mat = np.empty((frame_count + 1, 2), dtype=object)
                     frame_ctr = 0
 
             # mp_drawing.draw_landmarks(
