@@ -25,22 +25,30 @@ st_lottie(lottie_file, height=175, quality="medium")
 st.title("AiSL")
 
 st.write(
-    "Translate from American Sign Language to English in real-time by leveraging LSTM (Long Short Term Memory) Neural Networks and Large Language Models."
+    "Translate from American Sign Language to English in real-time by leveraging LSTM (Long Short Term Memory) Neural Networks."
 )
+
+st.write(
+    "To get started, hit the button below and begin signing your phrase or words. You will see the translation in real time. Once you are done signing, move your hands out of the frame. To close the camera, hit the finish button below."
+)
+
 st.write(
     "*Disclaimer: captured videos are only stored temporarily and wiped after inference.*"
 )
 
 use_webcam = st.button("Record Sign Language")
 stframe_cam = st.empty()
-
 translation = ""
 
 if use_webcam:
     vid = cv2.VideoCapture(0)
     st.write("---")
-    stframe_translation = st.empty()
-    st.button("Stop Recording")
+    col1, col2 = st.columns([5, 1])
+    with col1:
+        stframe_translation = st.empty()
+    with col2:
+        st.button("Finish", type="primary")
+    st.write("---")
 
     # Values
     width = int(vid.get(cv2.CAP_PROP_FRAME_WIDTH))
@@ -50,7 +58,7 @@ if use_webcam:
     out = cv2.VideoWriter("output1.webm", codec, fps, (width, height))
 
     # Number of frames to process at once:
-    frame_count = 50
+    frame_count = 30
     frame_ctr = 0
 
     with mp_holistic.Holistic(
@@ -94,8 +102,7 @@ if use_webcam:
                 if frame_ctr >= frame_count - 1:
                     label = infer(hands_mat)
                     translation += f"{label} "
-                    stframe_translation.write(f"Translation: {translation}")
-                    translation += f"{label} "
+                    stframe_translation.write(f'###  "{translation}"')
                     hands_mat = [[0] * 126 for _ in range(frame_count)]
                     frame_ctr = 0
 
