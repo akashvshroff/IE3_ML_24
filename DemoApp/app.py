@@ -32,11 +32,14 @@ st.write(
 )
 
 use_webcam = st.button("Record Sign Language")
-stframe = st.empty()
+stframe_cam = st.empty()
+
+translation = ""
 
 if use_webcam:
     vid = cv2.VideoCapture(0)
-
+    st.write("---")
+    stframe_translation = st.empty()
     st.button("Stop Recording")
 
     # Values
@@ -54,7 +57,7 @@ if use_webcam:
         min_detection_confidence=0.5, min_tracking_confidence=0.5
     ) as holistic:
 
-        hands_mat = np.empty((frame_count + 1, 2), dtype=object)
+        hands_mat = [[0] * 126 for _ in range(frame_count)]
 
         while vid.isOpened():
 
@@ -72,24 +75,28 @@ if use_webcam:
                 or results.left_hand_landmarks
                 or frame_ctr != 0
             ):
+                right_hand = [0] * 63
                 if results.right_hand_landmarks:
                     right_hand = []
                     for x in results.right_hand_landmarks.landmark:
-                        right_hand.append((x.x, x.y, x.z))
-                    hands_mat[frame_ctr][0] = np.array(right_hand)
+                        right_hand += [x.x, x.y, x.z]
+                hands_mat[frame_ctr] = right_hand
 
+                left_hand = [0] * 63
                 if results.left_hand_landmarks:
                     left_hand = []
                     for x in results.left_hand_landmarks.landmark:
-                        left_hand.append((x.x, x.y, x.z))
-                    hands_mat[frame_ctr][1] = np.array(left_hand)
+                        left_hand += [x.x, x.y, x.z]
+                hands_mat[frame_ctr] += left_hand
 
                 frame_ctr += 1
 
-                if frame_ctr == frame_count:
-                    np.save(f"data.npy", hands_mat)
-                    # PROCESS DATA
-                    hands_mat = np.empty((frame_count + 1, 2), dtype=object)
+                if frame_ctr >= frame_count - 1:
+                    label = infer(hands_mat)
+                    translation += f"{label} "
+                    stframe_translation.write(f"Translation: {translation}")
+                    translation += f"{label} "
+                    hands_mat = [[0] * 126 for _ in range(frame_count)]
                     frame_ctr = 0
 
             mp_drawing.draw_landmarks(
@@ -108,10 +115,8 @@ if use_webcam:
                 mp_drawing_styles.get_default_hand_connections_style(),
             )
 
-            stframe.image(cv2.flip(image, 1), use_column_width=True)
+            stframe_cam.image(cv2.flip(image, 1), use_column_width=True)
 
     vid.release()
     out.release()
     cv2.destroyAllWindows()
-
-    st.success("Video is Processed")
